@@ -111,71 +111,88 @@ def nnObjFunction(params, *args):
     num_image_samples = train_label.shape[0]
 
     # create a zeroed matrix for one of k encoding (to be used later with train_label vector)
+    # From piazza example (# rows, # cols)
     one_of_k_matrix = np.zeros((num_image_samples, n_class))
-    # print(one_of_k_matrix)
 
-    # Forward propogation
-    # Add bias of 1 for dot product with weight vector (1*W[n])
-    train_data = np.column_stack((train_data, np.ones(num_image_samples)))
-    # print(train_data)
+    # TODO: Forward propagation
 
-    # Compute hidden layer matrix Z
+    # Add bias of 1 for dot product with weight vector (1*W[D])
+    # train_data = np.column_stack((train_data, np.ones(num_image_samples)))
+    #print(np.ones(num_image_samples).shape)
+    bias_column = np.ones(num_image_samples)
+    bias_column = bias_column[:,np.newaxis]
+
+    # Append additional bias column to the data matrix
+    train_data = np.append(train_data, bias_column, 1)
+
+    # hidden layer matrix Z
     netZ = np.dot(train_data, np.transpose(W1))
     Z = sigmoid(netZ)
 
-    # Add bias of 1 for dot product with weight vector (1*W[n])
-    hidden_samples = Z.shape[0]
-    Z = np.column_stack((Z, np.ones(hidden_samples)))
+    # Add bias of 1 for dot product with weight vector (1*W[M])
+    num_hidden = Z.shape[0]
+    bias_column = np.ones(num_hidden)
+    bias_column = bias_column[:,np.newaxis]
 
-    # Compute output matrix O
+    # Append additional bias column to the hidden matrix
+    Z = np.append(Z, bias_column, 1)
+
+    # net output matrix O
     netO = np.dot(Z, np.transpose(W2))
     O = sigmoid(netO)
 
-    # Convert training data into 1 of K matrix encoding
+    # TODO: Convert training data into 1 of K matrix encoding
 
     # for each row specified by the index label,
-    # put a 1 in for the corresponding row value from train_label
-    # get index value of every sample
+    # place a 1 in for the corresponding row value from train_label
+    # get label value of every sample (train label)
     rows = np.arange(num_image_samples)
+    # Via piazza example
     one_of_k_matrix[rows, train_label] = 1
 
     # 1 of k matrix, now with expected (training) values marked
     train_k_matrix = one_of_k_matrix
 
-    # Backpropogation
-    # Compute the error for the output
-    # given under equation 9
-    error_output = (O - train_k_matrix)
+    # Compute the error for the output matrix
+    # given by equation 9
+    O_error = (O - train_k_matrix)
 
-    # print(error_output.shape)
+    # TODO: Backpropagation
 
     # compute the gradient for weight matrix 2
-    # Given by equation 8
-    grad_w2 = np.dot(np.transpose(error_output), Z)
+    # Given by equation 8 :
+    W2_gradient = np.dot(np.transpose(O_error), Z)
 
-    # given by equation 12
-    grad_w1 = np.dot(np.transpose((1 - Z) * Z * (np.dot(error_output, W2))), train_data)
-    # print(grad_w1)
+    # given by equation 12 :
+    left = (1 - Z) * Z
+    right = np.dot(O_error, W2)
+    W1_gradient = np.dot(np.transpose(left * right), train_data)
 
     # remove junk gradient row (bias result)
-    grad_w1 = np.delete(grad_w1, n_hidden, 0)
-    # print(grad_w1)
+    W1_removed = np.delete(W1_gradient, n_hidden, 0)
 
-    obj_grad = np.concatenate((grad_w1.flatten(), grad_w2.flatten()), 0)
-    # divide by the number of samples
-    obj_grad = obj_grad / train_data.shape[0]
+    # As suggested, flatten the resulting gradient's:
+    objective_gradient = np.concatenate((W1_removed.flatten(), W2_gradient.flatten()), 0)
 
-    # Regularization
-    # negative log-likelihood error function (equation 5)
-    obj_val = np.sum(train_k_matrix * np.log(O) + ((1 - train_k_matrix) * np.log(1 - O)))
-    obj_val = obj_val * (-1 / num_image_samples)
+    # divide by the number of image samples
+    obj_grad = objective_gradient / num_image_samples
 
-    # regularization equation to help reduce overfitting (given by equation 15) :
-    obj_val_regularized = (lambdaval / (2 * num_image_samples)) * (np.sum(np.square(W1)) + np.sum(np.square(W2)))
+    # TODO: Regularization
+
+    # negative log-likelihood error function (equation 5) :
+    left = train_k_matrix * np.log(O)
+    right = (1 - train_k_matrix) * np.log(1 - O)
+    objective_value = np.sum(left + right)
+    objective_value = objective_value * (-1 / num_image_samples)
+
+    # Regularization equation to help reduce overfitting (given by equation 15) :
+    left = (lambdaval / (2 * num_image_samples))
+    right = (np.sum(np.square(W1)) + np.sum(np.square(W2)))
+    regularized_val = left * right
     # sum the results for final error function value
-    obj_val = obj_val + obj_val_regularized
+    obj_val = objective_value + regularized_val
 
-    print("obj_val")
+    print("Objective value is : ")
     print(obj_val)
 
     return obj_val, obj_grad
@@ -196,25 +213,37 @@ def nnPredict(W1, W2, data):
 
     # Your code here
 
-    # Forward pass that returns highest probability prediction
+    # TODO: Forward pass
 
-    # Add bias of 1 for dot product with weight vector (1*W[n])
-    num_samples = data.shape[0]
-    data = np.column_stack((data, np.ones(num_samples)))
+    # get the number of image samples (rows of input)
+    num_image_samples = data.shape[0]
 
-    # Compute hidden layer matrix Z
+    # Add bias of 1 for dot product with weight vector (1*W[D])
+    # train_data = np.column_stack((train_data, np.ones(num_image_samples)))
+    bias_column = np.ones(num_image_samples)
+    bias_column = bias_column[:,np.newaxis]
+
+    # Append additional bias column to the data matrix
+    data = np.append(data, bias_column, 1)
+
+    # hidden layer matrix Z
     netZ = np.dot(data, np.transpose(W1))
     Z = sigmoid(netZ)
 
-    # Add bias of 1 for dot product with weight vector (1*W[n])
-    hidden_samples = Z.shape[0]
-    z = np.column_stack((Z, np.ones(hidden_samples)))
+    # Add bias of 1 for dot product with weight vector (1*W[M])
+    num_hidden = Z.shape[0]
+    bias_column = np.ones(num_hidden)
+    bias_column = bias_column[:,np.newaxis]
 
-    # Compute output matrix O
-    netO = np.dot(z, W2.T)
+    # Append additional bias column to the hidden matrix
+    Z = np.append(Z, bias_column, 1)
+
+    # net output matrix O
+    netO = np.dot(Z, np.transpose(W2))
     O = sigmoid(netO)
 
-    # Return the index with highest probability of prediction
+    # Return the index (vector) with highest probability of prediction
     label = np.argmax(O, axis=1)
+    print(label)
 
     return label
